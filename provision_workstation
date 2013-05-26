@@ -24,8 +24,11 @@ RCKEYSTONE=/datos/keys/deployer
 #
 #
 #
-
-f_Crear_instancia(){
+f_login(){
+  source $RCKEYSTONE
+  nova boot --flavor m1.small --image CentOS64 --key-name host-local
+}
+f_crearInstancia(){
 
 }
 while test -n "$1"; do
