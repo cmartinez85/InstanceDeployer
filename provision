@@ -33,13 +33,13 @@ f_crearInstancia(){
   nova boot --flavor m1.tiny --image wsGeneral --key-name host-local ws_$username
 }
 f_validaParams(){
-  if[ -z $USER ]
+  if [ -z $USER ];
   then
     echo "Falta parametre usuari."  
     f_help
     exit
   fi
-  if[ -z $PASSWORD ]
+  if [ -z $PASSWORD ];
   then
     echo "Falta parametre password."
     f_help
