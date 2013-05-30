@@ -1,0 +1,24 @@
+#Variables
+OS_RC=deployRC
+f_sshConfig(){
+# Funció per validar la configuració ssh per poder enviar variables d'entorn per ssh
+  grep "^SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD" $HOME/.ssh/config > /dev/null;
+  if [ $? -eq 0 ];
+  then
+    echo -e "- Parametros de traspaso de variables\t\t [OK]"
+  else
+    echo AcceptEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD >> /etc/ssh/sshd_config
+  fi
+}
+
+f_sshConfig
+source $OS_RC
+ssh -i deployerkey deployer@192.168.1.37 -C "nova --os-username $OS_USERNAME --os-password $OS_PASSWORD list" > /dev/null
+if [ $? -eq 0 ];
+  then
+    echo -e "- Verificació de credencials\t\t [OK]"
+  else
+    echo -e "- Verificació de credencials\t\t [NOK]"
+    exit 1
+  fi
+
