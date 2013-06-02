@@ -17,6 +17,7 @@ f_sshConfig
 source $OS_RC
 ssh -i deployerkey deployer@192.168.1.37 -C "nova --os-username $OS_USERNAME --os-password $OS_PASSWORD list" > /dev/null
 if [ $? -eq 0 ];
+<<<<<<< HEAD
 then
   echo -e "- Verificació de credencials\t\t [OK]"
 else
@@ -24,3 +25,13 @@ else
   exit 1
 fi
 sh -i deployerkey deployer@192.168.1.37 -C "nova boot --image wsGeneral " > /dev/null
+=======
+  then
+    echo -e "- Verificació de credencials\t\t [OK]"
+  else
+    echo -e "- Verificació de credencials\t\t [NOK]"
+    exit 1
+  fi
+#credencials verificades
+
+>>>>>>> 9542a153eb9ced353e0a261004b2cce8aa632211
