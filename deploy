@@ -1,33 +1,43 @@
 #!/bin/bash
 #Variables
 OS_RC=deployRC
-OP_CONTROLLER=192.168.1.37
+#OP_CONTROLLER=192.168.1.37
+OP_CONTROLLER=cmartinez.no-ip.biz
 SSHCON="ssh -i deployerkey deployer@$OP_CONTROLLER"
+f_root(){
+  user=$(whoami)
+  if [ $user == root ]; then
+    echo -e "Conprovació de privilegis correcta"
+  else
+    echo -e "[*] Error - Necessita permissos de root."
+    exit 1
+fi
+}
 f_sshConfig(){
 # Funció per validar la configuració ssh per poder enviar variables d'entorn per ssh
-  grep "^SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD" $HOME/.ssh/config > /dev/null;
-  if [ $? -eq 0 ];
-  then
-    echo -e "- Parametros de traspaso de variables\t\t [OK]"
-  else
-    echo AcceptEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD >> /etc/ssh/sshd_config
-  fi
+    grep "^SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD" /etc/ssh_config > /dev/null;
+    if [ $? -eq 0 ];
+    then
+      echo -e "- Parametros de traspaso de variables\t\t [OK]"
+    else
+      echo SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD >> /etc/ssh_config
+    fi
 }
 f_sshClearConfig(){
-  sed -i 's/SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD//g' $HOME/.ssh/config
+  sed -i"bkp" '/SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD/d' /etc/ssh_config
 }
 f_getInstanceInfo(){
-  echo TO-DO
+  #echo TO-DO
   $SSHCON -C "nova show $INSTANCENAME"
   QUERY="select uuid from instances where vm_state like \"active\" and display_name like \"$INSTANCENAME\";"
   QUERY2=$(echo "\"select uuid from nova.instances where vm_state like 'active' and display_name like '$INSTANCENAME';\"|mysql -udeployer| tail -1")
   UUID=`$SSHCON -C "echo $QUERY2"`
-  
-  echo "instance $INSTANCENAME $UUID"
+  IP=`$SSHCON -C "nova floating-ip-bulk-list | grep $UUID | cut -d'|' -f3"`
 }
+f_root
 f_sshConfig
 source $OS_RC
-$SSHCON -C "nova --os-username $OS_USERNAME --os-password $OS_PASSWORD list" > /dev/null
+$SSHCON -C "nova --os-username $OS_USERNAME --os-password $OS_PASSWORD --os-tenant-name $OS_TENANT_NAME list" > /dev/null
 if [ $? -eq 0 ];
 then
   echo -e "- Verificació de credencials\t\t [OK]"
@@ -47,5 +57,17 @@ else
 fi
 # Obtenim info de la nova instancia
 f_getInstanceInfo
-#un cop creada la instancia, ja no es necessari connectar amb el node controller.
-
+#un cop creada la instancia, ja no es necessari connectar amb el node controller.Es fa neteja per seguretat
+f_sshClearConfig
+#echo "instance $INSTANCENAME $UUID ip: $IP"
+echo -n "Introduint una entrada dns al fitxer hosts per $OS_USERNAME.dev.cloud.com"
+sed -i"hosbkp" '/$OS_USERNAME.dev.cloud.com/d' /etc/hosts
+echo $IP $OS_USERNAME.dev.cloud.com >> /etc/hosts 
+if [ $? -eq 0 ];
+then
+  echo -e "\t\t\t[OK]"
+else
+  echo -e "\t\t\t[NOK]"
+  exit 1
+fi
+exit 0
