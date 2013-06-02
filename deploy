@@ -1,7 +1,8 @@
+#!/bin/bash
 #Variables
 OS_RC=deployRC
-SSHCON="ssh -i deployerkey"
 OP_CONTROLLER=192.168.1.37
+SSHCON="ssh -i deployerkey deployer@$OP_CONTROLLER"
 f_sshConfig(){
 # Funció per validar la configuració ssh per poder enviar variables d'entorn per ssh
   grep "^SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD" $HOME/.ssh/config > /dev/null;
@@ -15,15 +16,36 @@ f_sshConfig(){
 f_sshClearConfig(){
   sed -i 's/SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD//g' $HOME/.ssh/config
 }
+f_getInstanceInfo(){
+  echo TO-DO
+  $SSHCON -C "nova show $INSTANCENAME"
+  QUERY="select uuid from instances where vm_state like \"active\" and display_name like \"$INSTANCENAME\";"
+  QUERY2=$(echo "\"select uuid from nova.instances where vm_state like 'active' and display_name like '$INSTANCENAME';\"|mysql -udeployer| tail -1")
+  UUID=`$SSHCON -C "echo $QUERY2"`
+  
+  echo "instance $INSTANCENAME $UUID"
+}
 f_sshConfig
 source $OS_RC
-$SSHCON deployer@$OP_CONTROLLER -C "nova --os-username $OS_USERNAME --os-password $OS_PASSWORD list" > /dev/null
+$SSHCON -C "nova --os-username $OS_USERNAME --os-password $OS_PASSWORD list" > /dev/null
 if [ $? -eq 0 ];
 then
   echo -e "- Verificació de credencials\t\t [OK]"
+  INSTANCENAME=ws$OS_USERNAME
 else
   echo -e "- Verificació de credencials\t\t [NOK]"
   exit 1
 fi
-#credencials verificades
-$SSHCON deployer@$OP_CONTROLLER -C "nova boot --image wsGeneral --flavor m1.tiny --key-name $OS_USERNAME ws$OS_USERNAME" > /dev/null
+#credencials verificades, creem instancia
+#$SSHCON -C "nova boot --image wsGeneral --flavor m1.tiny --key-name $OS_USERNAME ws$OS_USERNAME" > /dev/null
+if [ $? -eq 0 ];
+then
+  echo -e "- Creació d'instancia\t\t [OK]"
+else
+  echo -e "- Creació d'instancia\t\t [NOK]"
+  exit 1
+fi
+# Obtenim info de la nova instancia
+f_getInstanceInfo
+#un cop creada la instancia, ja no es necessari connectar amb el node controller.
+
