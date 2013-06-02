@@ -4,7 +4,7 @@ OS_RC=deployRC
 #OP_CONTROLLER=192.168.1.37
 OP_CONTROLLER=cmartinez.no-ip.biz
 SSHCON="ssh -i deployerkey deployer@$OP_CONTROLLER"
-SSHCONFIG=find /etc/ -type f -name ssh_config |tail -1
+SSHCONFIG=`find /etc/ -name ssh_config |tail -1`
 f_root(){
   user=$(whoami)
   if [ $user == root ]; then
@@ -16,7 +16,8 @@ fi
 }
 f_sshConfig(){
 # Funció per validar la configuració ssh per poder enviar variables d'entorn per ssh
-    find /etc/ -type f -name ssh_config -exec grep "^SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD" $SSHCONFIG > /dev/null {} \;
+    echo "--> $SSHCONFIG"
+    grep "^SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD" $SSHCONFIG > /dev/null
     if [ $? -eq 0 ];
     then
       echo -e "- Parametros de traspaso de variables\t\t [OK]"
