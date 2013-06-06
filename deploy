@@ -16,7 +16,6 @@ fi
 }
 f_sshConfig(){
 # Funció per validar la configuració ssh per poder enviar variables d'entorn per ssh
-    echo "--> $SSHCONFIG"
     grep "^SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD" $SSHCONFIG > /dev/null
     if [ $? -eq 0 ];
     then
@@ -72,4 +71,5 @@ else
   echo -e "\t\t\t[NOK]"
   exit 1
 fi
+./provision -i $IP -u $OS_USERNAME
 exit 0
