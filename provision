@@ -10,61 +10,37 @@
 # -p password : Mandatory, password for auth in openstack project
 #
 f_help(){
-   echo "./provision_workstation.sh -u user -p <password> "
-   echo "password            Password"
-   echo "user                Nom d'usuari"
+   echo "./provision -i IP -u user"
    echo "-h                  Mostra aquest missatge."
    echo ""
 }
-# Variables:
-USER=""
-PASSWORD=""
-RCKEYSTONE=/datos/keys/deployer
-FLAVOR="m1.tiny"
 
-#
-#
-#
-f_login(){
-  source $RCKEYSTONE
-}
-f_crearInstancia(){
-  f_login
-  nova boot --flavor m1.tiny --image wsGeneral --key-name host-local ws_$username
-}
-f_validaParams(){
-  if [ -z $USER ];
-  then
-    echo "Falta parametre usuari."  
-    f_help
-    exit
-  fi
-  if [ -z $PASSWORD ];
-  then
-    echo "Falta parametre password."
-    f_help
-    exit
-  fi
-}
 while test -n "$1"; do
     case "$1" in
         -h)
             f_help
             exit;
             ;;
+        -i)
+            IP=$2
+            shift
+            ;;
         -u)
-            USER=$2
-            shift
-            ;;
-        -p)
-            PASSWORD=$2
-            shift
-            ;;
-         *)
+	   USER=$2
+	   shift
+	   ;; 
+	 *)
             MESSAGE="Unknown argument: $1"
             f_help
             ;;
         esac
     shift
 done
-f_validaParams
+if [ -z $IP ];
+then
+  exit 1
+fi
+echo $USER
+SSHDEV="ssh root@$IP"
+$SSHDEV -C "useradd -s /bin/bash $USER;"
+$SSHDEV -C "mkdir /home/$USER/.ssh;cp -a .ssh/authorized_keys /home/$USER/.ssh/authorized_keys;chown -R $USER: /home/$USER/"
