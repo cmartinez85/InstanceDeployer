@@ -1,8 +1,8 @@
 #!/bin/bash
 #Variables
 OS_RC=deployRC
-#OP_CONTROLLER=192.168.1.37
-OP_CONTROLLER=cmartinez.no-ip.biz
+OP_CONTROLLER=192.168.1.37
+#OP_CONTROLLER=cmartinez.no-ip.biz
 SSHCON="ssh -i deployerkey deployer@$OP_CONTROLLER"
 SSHCONFIG=`find /etc/ -name ssh_config |tail -1`
 f_root(){
@@ -54,6 +54,7 @@ then
   if [ $ALREADYCREATED -ge 1 ];
   then
     echo -e "INFO - Ja hi ha una màquina creada per aquest usuari, no es crearà cap més fins que sigui donada de baixa la existent."
+    exit 1
   else
     $SSHCON -C "nova boot --image wsGeneral --flavor m1.tiny --key-name $OS_USERNAME $INSTANCENAME" > /dev/null
   fi    
