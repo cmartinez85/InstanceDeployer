@@ -1,10 +1,10 @@
 #!/bin/bash
 #Variables
 OS_RC=deployRC
+GLANCE_IMAGE=wsGeneral
 OP_CONTROLLER=192.168.1.37
 #OP_CONTROLLER=cmartinez.no-ip.biz
 SSHCON="ssh -i deployerkey deployer@$OP_CONTROLLER"
-SSHCONFIG=`find /etc/ -name ssh_config |tail -1`
 f_root(){
   user=$(whoami)
   if [ $user == root ]; then
@@ -15,6 +15,7 @@ f_root(){
 fi
 }
 f_sshConfig(){
+SSHCONFIG=`find /etc/ -name ssh_config |tail -1`
 # Funció per validar la configuració ssh per poder enviar variables d'entorn per ssh
     grep "^SendEnv OS_AUTH_URL OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD" $SSHCONFIG > /dev/null
     if [ $? -eq 0 ];
@@ -29,7 +30,7 @@ f_sshClearConfig(){
 }
 f_getInstanceInfo(){
   #echo TO-DO
-  $SSHCON -C "nova show $INSTANCENAME"
+  #$SSHCON -C "nova show $INSTANCENAME"
   QUERY="select uuid from instances where vm_state like \"active\" and display_name like \"$INSTANCENAME\";"
   QUERY2=$(echo "\"select uuid from nova.instances where vm_state like 'active' and display_name like '$INSTANCENAME';\"|mysql -udeployer| tail -1")
   UUID=`$SSHCON -C "echo $QUERY2"`
@@ -44,7 +45,7 @@ then
   echo -e "- Verificació de credencials\t\t [OK]"
   INSTANCENAME=ws$OS_USERNAME
 else
-  echo -e "- Verificació de credencials\t\t [NOK]"
+  echo -e "- Verificació de credencials\t\t [ERROR]"
   exit 1
 fi
 #credencials verificades, creem instancia
@@ -56,18 +57,37 @@ then
     echo -e "INFO - Ja hi ha una màquina creada per aquest usuari, no es crearà cap més fins que sigui donada de baixa la existent."
     exit 1
   else
-    $SSHCON -C "nova boot --image wsGeneral --flavor m1.tiny --key-name $OS_USERNAME $INSTANCENAME" > /dev/null
+    $SSHCON -C "nova boot --image $GLANCE_IMAGE --flavor m1.tiny --key-name $OS_USERNAME $INSTANCENAME" > /dev/null
   fi    
 else
   echo -e "ERROR - No s'ha pogut verificar si l'usuari té altres màquines creades"
+  exit 1
 fi
 
 #$SSHCON -C "nova boot --image wsGeneral --flavor m1.tiny --key-name $OS_USERNAME $INSTANCENAME" > /dev/null
 if [ $? -eq 0 ];
 then
-  echo -e "- Creació d'instancia\t\t [OK]"
+  echo -n "- Creació d'instancia "
+  i=0
+  while [ $i -le 10  ]
+  do  
+    INSTACTIVA=$($SSHCON -C "nova show $INSTANCENAME | grep active |wc -l") 
+    if [ $INSTACTIVA -eq 1  ];
+    then 
+      echo -e "[OK]"
+      i=12
+    else
+      sleep 3
+      echo -n "."
+      i=$(( $i + 1 ))
+    fi
+  done
+  if [ $i -eq 11  ];
+  then
+    echo -e "\t\t[ERROR]"
+  fi
 else
-  echo -e "- Creació d'instancia\t\t [NOK]"
+  echo -e "- Creació d'instancia\t\t [ERROR]"
   exit 1
 fi
 # Obtenim info de la nova instancia
@@ -82,8 +102,17 @@ if [ $? -eq 0 ];
 then
   echo -e "\t\t\t[OK]"
 else
-  echo -e "\t\t\t[NOK]"
+  echo -e "\t\t\t[ERROR]"
   exit 1
 fi
+UPCON=2
+while [ $UPCON -gt 1  ]
+do
+UPCON=$(ping -c 1 $OS_USERNAME.dev.cloud.com|grep "packets transmitted"|cut -d, -f2|cut -d' ' -f2)
+done
 ./provision -i $IP -u $OS_USERNAME
+if [ $? -eq 0 ];
+then
+ echo "Instancia configurada correctament. Ja pot accedir amb ssh $OS_USERNAME@$OS_USERNAME.dev.cloud.com"
 exit 0
+fi
