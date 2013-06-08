@@ -30,8 +30,9 @@ while test -n "$1"; do
 	   shift
 	   ;; 
 	 *)
-            MESSAGE="Unknown argument: $1"
+            MESSAGE="Argument desconegut: $1"
             f_help
+	    exit
             ;;
         esac
     shift
@@ -41,6 +42,17 @@ then
   exit 1
 fi
 echo $USER
-SSHDEV="ssh root@$IP"
-$SSHDEV -C "useradd -s /bin/bash $USER;"
-$SSHDEV -C "mkdir /home/$USER/.ssh;cp -a .ssh/authorized_keys /home/$USER/.ssh/authorized_keys;chown -R $USER: /home/$USER/"
+SSHROOT="ssh root@$IP"
+SSHUSER="ssh $USER@$IP"
+echo "Esperant a que la màquina es configuri per accedir..."
+sleep 5
+SSHUP=3
+while [ $SSHUP -gt 0 ]
+do
+  sleep 1
+  $SSHROOT -C "echo ." >> /dev/null
+  SSHUP=$?
+done
+$SSHROOT -C "useradd -s /bin/bash $USER;mkdir /home/$USER/.ssh;cp -a .ssh/authorized_keys /home/$USER/.ssh/authorized_keys;chown -R $USER: /home/$USER/;cd /home/$USER/.ssh;echo github.com,204.232.175.90 ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ== > known_hosts;chown -R $USER: /home/$USER/"
+$SSHROOT -C "mkdir /data;mkdir /data/content;chown -R $USER: /data"
+$SSHUSER -C "cd /data;git clone https://github.com/cmartinez85/TicketingCode.git;ln -s /data/TicketingCode/ /data/content/ticketing.com"
