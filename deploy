@@ -108,7 +108,10 @@ fi
 UPCON=2
 while [ $UPCON -gt 1  ]
 do
-UPCON=$(ping -c 1 $OS_USERNAME.dev.cloud.com|grep "packets transmitted"|cut -d, -f2|cut -d' ' -f2)
+#UPCON=$(ping -c 1 $OS_USERNAME.dev.cloud.com |grep "packets transmitted"|cut -d, -f2|cut -d' ' -f2)
+ping -c 1 $OS_USERNAME.dev.cloud.com >> /dev/null
+UPCON=$?
+echo -e .
 done
 ./provision -i $IP -u $OS_USERNAME
 if [ $? -eq 0 ];
